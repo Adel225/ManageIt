@@ -4,7 +4,7 @@ import React from 'react'
 const Spotify = () => {
     return (
         <View>
-            <Text>Spotiify</Text>
+            <Text>Spotify</Text>
         </View>
     )
 }
