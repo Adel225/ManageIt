@@ -3,22 +3,25 @@ import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { styled } from "nativewind";
 import { useClerk, useUser } from '@clerk/expo';
 import images from '@/constants/images';
+import { usePostHog } from 'posthog-react-native';
 const SafeAreaView = styled(RNSafeAreaView);
 
 const Settings = () => {
     const { signOut } = useClerk();
     const { user } = useUser();
+    const posthog = usePostHog();
 
     const handleSignOut = async () => {
         try {
+            posthog.capture('user_signed_out');
             await signOut();
         } catch (error) {
             console.error('Sign-out failed:', error);
         }
     };
 
-    const displayName = user?.firstName || user?.fullName || user?.emailAddresses[0]?.emailAddress || 'User';
-    const email = user?.emailAddresses[0]?.emailAddress;
+    const displayName = user?.firstName || user?.fullName || user?.primaryEmailAddress?.emailAddress || 'User';
+    const email = user?.primaryEmailAddress?.emailAddress;
 
     return (
         <SafeAreaView className="flex-1 bg-background p-5">

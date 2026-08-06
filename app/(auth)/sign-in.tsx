@@ -1,19 +1,25 @@
-import { View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { Link, useRouter, type Href } from 'expo-router';
 import { useSignIn } from '@clerk/expo';
-import { useState } from 'react';
-import { SafeAreaView as RNSafeAreaView } from 'react-native-safe-area-context';
+import { Link, useRouter } from 'expo-router';
 import { styled } from 'nativewind';
+import { useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { SafeAreaView as RNSafeAreaView } from 'react-native-safe-area-context';
+import { createAuthNavigate } from '../../lib/auth-navigate';
+import { usePostHog } from 'posthog-react-native';
 
 const SafeAreaView = styled(RNSafeAreaView);
 
 const SignIn = () => {
     const { signIn, errors, fetchStatus } = useSignIn();
     const router = useRouter();
+    const posthog = usePostHog();
 
     const [emailAddress, setEmailAddress] = useState('');
     const [password, setPassword] = useState('');
     const [code, setCode] = useState('');
+    const [mfaRequired, setMfaRequired] = useState(false);
+    const [authFlowError, setAuthFlowError] = useState('');
+    const [isEmailCodeVerificationReady, setIsEmailCodeVerificationReady] = useState(false);
 
     // Validation states
     const [emailTouched, setEmailTouched] = useState(false);
@@ -26,6 +32,9 @@ const SignIn = () => {
 
     const handleSubmit = async () => {
         if (!formValid) return;
+        setMfaRequired(false);
+        setAuthFlowError('');
+        setIsEmailCodeVerificationReady(false);
 
         const { error } = await signIn.password({
             emailAddress,
@@ -41,37 +50,24 @@ const SignIn = () => {
 
         if (signIn.status === 'complete') {
             await signIn.finalize({
-                navigate: ({ session, decorateUrl }) => {
-                    if (session?.currentTask) {
-                        console.log(session?.currentTask);
-                        return;
-                    }
-
-                    const url = decorateUrl('/(tabs)');
-                    if (url.startsWith('http')) {
-                        // Only use window.location on web platform
-                        if (typeof window !== 'undefined' && window.location) {
-                            window.location.href = url;
-                        } else {
-                            // On native, just use router navigation
-                            router.replace('/(tabs)' as Href);
-                        }
-                    } else {
-                        router.replace(url as Href);
-                    }
-                },
+                navigate: createAuthNavigate(router),
+            });
+            posthog.capture('sign_in_completed', {
+                authentication_method: 'password',
             });
         } else if (signIn.status === 'needs_second_factor') {
-            // Handle MFA if needed (not implemented in this basic flow)
-            console.log('MFA required');
+            setMfaRequired(true);
         } else if (signIn.status === 'needs_client_trust') {
-            // Send email code for client trust verification
-            const emailCodeFactor = signIn.supportedSecondFactors.find(
+            const emailCodeFactor = signIn.supportedSecondFactors?.find(
                 (factor) => factor.strategy === 'email_code'
             );
 
             if (emailCodeFactor) {
                 await signIn.mfa.sendEmailCode();
+                setIsEmailCodeVerificationReady(true);
+            } else {
+                setAuthFlowError('Email verification is unavailable for this account. Please use another sign-in method.');
+                signIn.reset();
             }
         } else {
             console.error('Sign-in attempt not complete:', signIn);
@@ -83,24 +79,10 @@ const SignIn = () => {
 
         if (signIn.status === 'complete') {
             await signIn.finalize({
-                navigate: ({ session, decorateUrl }) => {
-                    if (session?.currentTask) {
-                        console.log(session?.currentTask);
-                        return;
-                    }
-                    const url = decorateUrl('/(tabs)');
-                    if (url.startsWith('http')) {
-                        // Only use window.location on web platform
-                        if (typeof window !== 'undefined' && window.location) {
-                            window.location.href = url;
-                        } else {
-                            // On native, just use router navigation
-                            router.replace('/(tabs)' as Href);
-                        }
-                    } else {
-                        router.replace(url as Href);
-                    }
-                },
+                navigate: createAuthNavigate(router),
+            });
+            posthog.capture('sign_in_completed', {
+                authentication_method: 'email_code',
             });
         } else {
             console.error('Sign-in attempt not complete:', signIn);
@@ -108,7 +90,7 @@ const SignIn = () => {
     };
 
     // Show verification screen if client trust is needed
-    if (signIn.status === 'needs_client_trust') {
+    if (signIn.status === 'needs_client_trust' && isEmailCodeVerificationReady) {
         return (
             <SafeAreaView className="auth-safe-area">
                 <KeyboardAvoidingView
@@ -275,6 +257,14 @@ const SignIn = () => {
                                         {fetchStatus === 'fetching' ? 'Signing In...' : 'Sign In'}
                                     </Text>
                                 </Pressable>
+                                {mfaRequired && (
+                                    <Text className="auth-error">
+                                        A second-factor verification method is required for this account. Please use a supported authentication app or method to continue.
+                                    </Text>
+                                )}
+                                {authFlowError && (
+                                    <Text className="auth-error">{authFlowError}</Text>
+                                )}
                             </View>
                         </View>
 

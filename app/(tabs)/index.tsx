@@ -12,14 +12,24 @@ import UpcommingSubCard from "@/components/upCommingSubCard";
 import SubCard from "@/components/SubCard";
 import { useState } from "react";
 import { useUser } from '@clerk/expo';
+import { usePostHog } from 'posthog-react-native';
 const SafeAreaView = styled(FuckMeHard);
 
 
 export default function App() {
   const { user } = useUser();
+  const posthog = usePostHog();
   const [expandedSubId, setExpandedSubId] = useState<string | null>(null);
 
-  const displayName = user?.firstName || user?.fullName || user?.emailAddresses[0]?.emailAddress || 'User';
+  const displayName = user?.firstName || user?.fullName || user?.primaryEmailAddress?.emailAddress || 'User';
+
+  const handleSubscriptionDetailsToggle = (subscriptionId: string) => {
+    const isExpanded = expandedSubId !== subscriptionId;
+    posthog.capture('subscription_details_toggled', {
+      is_expanded: isExpanded,
+    });
+    setExpandedSubId(isExpanded ? subscriptionId : null);
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-background p-5">
@@ -71,7 +81,7 @@ export default function App() {
                   key={item.id}
                   {...item} 
                   expanded={expandedSubId === item.id} 
-                  onPress={() => setExpandedSubId((currentId) => (currentId === item.id ? null : item.id))} 
+                  onPress={() => handleSubscriptionDetailsToggle(item.id)} 
                 />
               ))}
             </View>
