@@ -3,6 +3,7 @@ import React from 'react'
 import { formatCurrency } from '@/lib/utils'
 
 const UpcommingSubCard = ({name, price, daysLeft, icon, currency}: UpcomingSubscription) => {
+
     return (
         <View className='upcoming-card'>
             <View className='upcoming-row'>
@@ -13,9 +14,16 @@ const UpcommingSubCard = ({name, price, daysLeft, icon, currency}: UpcomingSubsc
                 </View>
             </View>
 
+            {/* this is a text for real for real */}
+            
             <Text className='upcoming-name' numberOfLines={1}>{name}</Text>
+            
         </View>
     )
 }
 
 export default UpcommingSubCard
+
+
+
+

@@ -11,11 +11,15 @@ import ListHeading from "@/components/listheading";
 import UpcommingSubCard from "@/components/upCommingSubCard";
 import SubCard from "@/components/SubCard";
 import { useState } from "react";
+import { useUser } from '@clerk/expo';
 const SafeAreaView = styled(FuckMeHard);
 
 
 export default function App() {
+  const { user } = useUser();
   const [expandedSubId, setExpandedSubId] = useState<string | null>(null);
+
+  const displayName = user?.firstName || user?.fullName || user?.emailAddresses[0]?.emailAddress || 'User';
 
   return (
     <SafeAreaView className="flex-1 bg-background p-5">
@@ -27,7 +31,7 @@ export default function App() {
         <View className="home-header" >
           <View className="home-user" >
             <Image source={images.avatar} className="home-avatar" />
-            <Text className="home-user-name">{HOME_USER.name}</Text>
+            <Text className="home-user-name">{displayName.split('@')[0]}</Text>
           </View>
 
           <Image className="home-add-icon" source={icons.add} />
