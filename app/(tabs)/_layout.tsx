@@ -1,73 +1,73 @@
-import { tabs } from '@/constants/data'
+import {Tabs, Redirect} from "expo-router";
+import {tabs} from "@/constants/data";
+import {View, Image} from "react-native";
 import { colors, components } from '@/constants/theme'
-import clsx from "clsx"
-import { Image, View } from 'react-native'
-import { Tabs } from 'expo-router'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import clsx from "clsx";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from '@clerk/expo';
 
 const tabBar = components.tabBar;
 
-const TabLayout = () => {
-    const insets = useSafeAreaInsets();
-
-    const TabIcon = ({ focused, icon }: TabIconProps) => {
-        return (
-            <View className='tabs-icon' >
-                <View className={clsx('tabs-pill', focused && 'tabs-active')} >
-                    <Image source={icon} resizeMode='contain' className='tabs-glyph' />
-                </View>
-            </View>
-        )
-    }
-
+const TabIcon = ({focused, icon}: TabIconProps) => {
     return (
-        <Tabs 
-        initialRouteName="index" 
-        screenOptions={{ 
-                headerShown: false,
-                tabBarShowLabel: false,
-                tabBarStyle: {
-                    position: 'absolute',
-                    bottom: Math.max(insets.bottom, tabBar.horizontalInset),
-                    height: tabBar.height,
-                    marginHorizontal: tabBar.horizontalInset,
-                    borderRadius: tabBar.radius,
-                    backgroundColor: colors.primary,
-                    borderTopWidth: 0,
-                    elevation: 0,
-            },
-            tabBarItemStyle: {
-                paddingVertical: tabBar.height / 2 - tabBar.iconFrame / 1.6
-            },
-            tabBarIconStyle: {
-                    width: tabBar.iconFrame,
-                    height: tabBar.iconFrame,
-                    alignItems: 'center'
-            }
-            }} >
+        <View className="tabs-icon">
+            <View className={clsx('tabs-pill', focused && 'tabs-active')}>
+                <Image source={icon} resizeMode="contain" className="tabs-glyph"/>
+            </View>
+        </View>
+    );
+};
+const TabLayout = () => {
+        const { isSignedIn, isLoaded } = useAuth();
+        const insets = useSafeAreaInsets();
 
-            {tabs.map((tab) => (
-                <Tabs.Screen 
-                    key={tab.name}
-                    name={tab.name}
-                    options={{ 
-                        title: tab.title,
-                        tabBarIcon: ({ focused }) => (
-                            <TabIcon focused={focused} icon={tab.icon} />
-                        )
-                    }} 
-                />
-            ))}
+        if (!isLoaded) {
+            return null;
+        }
 
-            {/* <Tabs.Screen name="index" options={{ title: "Home" }} />
-            <Tabs.Screen name="subscriptions" options={{ title: "Subscriptions" }} />
-            <Tabs.Screen name="insights" options={{ title: "Insights" }} />
-            <Tabs.Screen name="settings" options={{ title: "Settings" }} />
-            <Tabs.Screen name="subscriptions/[id]" options={{ href: null }} />
-            <Tabs.Screen name="subscriptions/spotify" options={{ href: null }} /> */}
+        // Redirect to sign-in if user is not authenticated
+        if (!isSignedIn) {
+            return <Redirect href="/(auth)/sign-in" />;
+        }
 
-        </Tabs>
-    )
+        return (
+            <Tabs
+                screenOptions={{
+                        headerShown: false,
+                        tabBarShowLabel: false,
+                        tabBarStyle: {
+                                position: 'absolute',
+                                bottom: Math.max(insets.bottom, tabBar.horizontalInset),
+                                height: tabBar.height,
+                                marginHorizontal: tabBar.horizontalInset,
+                                borderRadius: tabBar.radius,
+                                backgroundColor: colors.primary,
+                                borderTopWidth: 0,
+                                elevation: 0,
+                        },
+                        tabBarItemStyle: {
+                                paddingVertical: tabBar.height / 2 - tabBar.iconFrame / 1.6
+                        },
+                        tabBarIconStyle: {
+                                width: tabBar.iconFrame,
+                                height: tabBar.iconFrame,
+                                alignItems: 'center'
+                        }
+            }}
+            >
+                    {tabs.map((tab) => (
+                        <Tabs.Screen
+                            key={tab.name}
+                            name={tab.name}
+                            options={{
+                                    title: tab.title,
+                                    tabBarIcon: ({focused}) => (
+                                        <TabIcon focused={focused} icon={tab.icon} />
+                                    )
+                            }}/>
+                    ))}
+            </Tabs>
+        )
 }
 
-export default TabLayout
+export default TabLayout;
