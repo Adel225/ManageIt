@@ -12,6 +12,7 @@ import { clsx } from "clsx";
 import dayjs from "dayjs";
 
 import { icons } from "@/constants/icons";
+import { posthog } from "@/lib/posthog";
 
 const CATEGORY_OPTIONS = [
   "Entertainment",
@@ -114,6 +115,13 @@ const CreateSubscriptionModal = ({
       currency: "USD",
       plan: `${frequency} Plan`,
     });
+
+    posthog?.capture("sub_created", {
+      subscription_name: trimmedName,
+      subscription_price: parsedPrice,
+      subscription_frequency: frequency,
+      subscription_category: category,
+    })
 
     resetForm();
     onClose();
