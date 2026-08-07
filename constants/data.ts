@@ -98,7 +98,7 @@ export const HOME_SUBSCRIPTIONS: Subscription[] = [
         paymentMethod: "Visa ending in 7784",
         status: "cancelled",
         startDate: "2024-04-02T10:00:00.000Z",
-        price: 119.99,
+        price: 19.99,
         currency: "USD",
         billing: "Yearly",
         renewalDate: "2026-04-02T10:00:00.000Z",
